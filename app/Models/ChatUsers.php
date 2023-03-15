@@ -5,23 +5,21 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-use function PHPSTORM_META\type;
-
-class Notification extends Model
+class ChatUsers extends Model
 {
     use HasFactory;
 
-    protected $fillable=[
-
-        'creator_id',
-        'notifiable_id',
-        'type',
-        'object_id',
+    protected $fillable = [
+        'user_id',
+        'chat_id',
     ];
 
-    public function notifiable()
+    public function chat()
+    {
+        return $this->belongsTo(Chat::class);
+    }
+    public function user()
     {
         return $this->belongsTo(User::class);
     }
-
 }

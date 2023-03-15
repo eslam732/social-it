@@ -24,6 +24,7 @@ class CreateUsersTable extends Migration
             $table->text('about');
             $table->integer('followers')->default(0);
             $table->integer('followings')->default(0);
+            $table->integer('private')->default(0);
             $table->string('verification_code')->nullable();
             $table->rememberToken();
             $table->timestamps();

@@ -8,6 +8,8 @@ use Illuminate\Support\Facades\Route;
 
 Route::post('signup',[AuthController::class,'signUp']);
 Route::post('login',[AuthController::class,'login']);
+Route::post('forgetpassword',[AuthController::class,'forgetPassword']);
+Route::post('checkcode',[AuthController::class,'checkCode']);
 
 Route::get('UnAuthorized',[AuthController::class,'UnAuthorized'])->name('UnAuthorized'); 
 Route::middleware('auth:api')->post('verify',[AuthController::class,'verify']);

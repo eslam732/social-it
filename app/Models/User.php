@@ -22,6 +22,7 @@ class User extends Authenticatable
         'email',
         'password',
         'about',
+        'private',
         'picture',
         'following',
         'followers',
@@ -36,7 +37,9 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
-        'verification_code'
+        'verification_code',
+        'verified',
+        'email_verified_at'
     ];
 
    
@@ -60,9 +63,20 @@ class User extends Authenticatable
         return $this->hasMany(Comment::class);
     }
 
-    public function notifications()
+
+
+    public function followRequests()
     {
-        return $this->hasMany(Notification::class);
+        return $this->hasMany(followRequests::class);
+    }
+    public function messages()
+    {
+        return $this->hasMany(Message::class);
+    }
+
+    public function chat_users()
+    {
+        return $this->hasMany(ChatUsers::class);
     }
 
 

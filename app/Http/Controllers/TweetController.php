@@ -2,15 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\LikeEvent;
 use App\Models\Likes;
-use App\Models\Notification as ModelsNotification;
 use App\Models\Retweets;
 use App\Models\Tweet;
 use App\Models\User;
-use App\Notifications\AllNotifications;
 use App\Notifications\Like;
 use Illuminate\Http\Request;
-use Illuminate\Notifications\Notification;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
@@ -29,7 +27,7 @@ class TweetController extends Controller
         $tweetData['user_id'] = Auth::user()->id;
 
         $tweet = Tweet::create($tweetData);
-        return response()->json(['tweet' => $tweet, 201]);
+        return response()->json(['tweet' => $tweet], 201);
 
     }
 
@@ -59,27 +57,27 @@ class TweetController extends Controller
         //    right join  tweets on likes.tweet_id=tweets.id
         // ;"));
 
-        $tweets = DB::table('tweets')->get();
+        // $tweets = DB::table('tweets')->get();
 
-        foreach ($tweets as &$tweet) {
+        // foreach ($tweets as &$tweet) {
 
-            $userLikes = DB::table('likes')
-                ->where('tweet_id', '=', $tweet->id)
-                ->get(["user_id"]);
-            $tweet->likedby = $userLikes;
+        //     $userLikes = DB::table('likes')
+        //         ->where('tweet_id', '=', $tweet->id)
+        //         ->get(["user_id"]);
+        //     $tweet->likedby = $userLikes;
 
-            //return response()->json(["tweets" => $tweet, 200]);
-            // $tweet->likedby = unserialize($tweet->likedby);
-        }
+        //return response()->json(["tweets" => $tweet, 200]);
+        // $tweet->likedby = unserialize($tweet->likedby);
+        // }
+        $tweets = Tweet::with('user')->with('likes')->get();
 
         return response()->json(["tweets" => $tweets, 200]);
     }
 
-
-
     public function like($tweetId)
     {
-       
+
+        try { 
         $tweet = Tweet::find($tweetId);
         if (!$tweet) {
             return response()->json("tweet not found", 202);
@@ -95,45 +93,55 @@ class TweetController extends Controller
             $tweet->save();
             return response()->json("Un liked", 202);
         }
-        $tweet->likes = ($tweet->likes) + 1;
-        $tweet->save();
-        $likeData = [];
+        $notifiableUser = Tweet::where('id', $tweetId)->with('user')->get()->pluck('user')[0];
+        if (!$notifiableUser) {
+            return response()->json(['cant like due to server error or user is not available'], 400);
+        }
+
         $likeData['tweet_id'] = $tweetId;
         $likeData['user_id'] = $userId;
-
         $like = Likes::create($likeData);
-        $notificationData['notifiable_id']=$tweet->user_id;
-        $notificationData['creator_id']=$userId;
-        $notificationData['type']='Like';
-        $notificationData['object_id']=$like->id;
-        ModelsNotification::create($notificationData);
-        return response()->json('liked', 200);
-
+        $tweet->likes = ($tweet->likes) + 1;
+        $tweet->save();
        
+
+            $notifiableUser->notify(new Like(Auth()->user(), $tweet, $like));
+            broadcast(new LikeEvent($like, Auth::user(), $tweet))->toOthers();
+
+        }
+        catch(\Exception $e){
+            return response()->json(['liked but some error has ocured in sending notification or brodcasting'=>$e->getMessage()], 200);
+
+        }
+        
+
+        return response()->json('liked', 200);
 
     }
 
     public function getLikes($tweetId)
-    {$tweet = Tweet::find($tweetId);
+    {
+        $tweet = Tweet::find($tweetId);
         if (!$tweet) {
             return response()->json("tweet not found", 200);
         }
 
-        $likes = Likes::where('tweet_id', '=', $tweetId)->with('user')->get()->pluck('user');
+        //   $likes = Likes::where('tweet_id', '=', $tweetId)->with('user')->get();
+        $likenew = $tweet->likes()->with('user')->get();
 
-        return response()->json(['likes' => $likes, 200]);
+        return response()->json(['likes' => $likenew, 200]);
 
     }
 
     public function retweet($tweetId)
     {
-        $tweet=Tweet::find($tweetId);
-        if(!$tweet){
+        $tweet = Tweet::find($tweetId);
+        if (!$tweet) {
             return response()->json("tweet not found", 200);
         }
-        $userId=Auth::user()->id;
+        $userId = Auth::user()->id;
 
-        $retweet=Retweets::where('tweet_id', $tweetId)->where('user_id', $userId)->get();
+        $retweet = Retweets::where('tweet_id', $tweetId)->where('user_id', $userId)->get();
 
         if (count($retweet)) {
             $retweet->each->delete();
@@ -148,45 +156,27 @@ class TweetController extends Controller
         $retweetData['tweet_id'] = $tweetId;
         $retweetData['user_id'] = $userId;
 
-        $retweeted = Retweets::create($retweetData);
+        Retweets::create($retweetData);
         return response()->json('retweeted', 200);
 
     }
 
     public function tweetRetweets($tweetId)
     {
-        $tweet=Tweet::find($tweetId);
-        if(!$tweet){
+        $tweet = Tweet::find($tweetId);
+        if (!$tweet) {
             return response()->json("tweet not found", 200);
         }
 
         // $retweets=Retweets::where('tweet_id', $tweetId)->with('user')->get();
 
-        $retweets=DB::select(DB::raw("
-        SELECT users.id,name,picture,about,email FROM users 
+        $retweets = DB::select(DB::raw("
+        SELECT users.id,name,picture,about,email FROM users
         join  retweets on users.id=retweets.user_id
          where (tweet_id=$tweetId)
-           
+
         "));
-        return response()->json(['retweets'=>$retweets, 200]);
+        return response()->json(['retweets' => $retweets, 200]);
     }
 
-
-    public function getNotifications()
-    {$user=Auth::user();
-
-      
-       
-
-
-           $notification=DB::select(DB::raw("
-                    SELECT name,email,type FROM users 
-                   join  notifications on users.id=notifications.creator_id
-                    where (notifiable_id=$user->id)
-                
-                ;"));
-       return response()->json(['notifications'=>$notification],200);
-        
-   }
-    
 }

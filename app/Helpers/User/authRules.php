@@ -3,6 +3,11 @@
  use Illuminate\Support\Facades\Validator;
 
 
+function test($n)
+{
+    dd($n);
+}
+
  function signUpRules()
 {
     
@@ -10,7 +15,7 @@
         'name' => 'required',
         'email' => 'required|email|unique:users',
         'about' => 'required|min:5',
-        'picture' => 'required|min:4|image',
+        'picture' => 'required|image',
         'password' => 'required|min:4|confirmed',
 
     ];

@@ -17,7 +17,7 @@ class Comment extends Model
         'comment_id',
         
     ];
-    use HasFactory;
+    
 
     public function user()
     {

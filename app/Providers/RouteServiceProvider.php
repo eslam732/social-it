@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Foundation\Support\Providers\RouteServiceProvider as ServiceProvider;
 use Illuminate\Http\Request;
@@ -62,6 +63,12 @@ class RouteServiceProvider extends ServiceProvider
                 ->middleware('api')
                 ->namespace($this->namespace)
                 ->group(base_path('routes/Tweet/comment.php'));
+
+                Route::prefix('chat')
+                ->middleware('api')
+                ->middleware('auth:api')
+                ->namespace($this->namespace)
+                ->group(base_path('routes/User/chat.php'));
 
             Route::middleware('web')
                 ->namespace($this->namespace)
