@@ -116,6 +116,10 @@ class ChatController extends Controller
         return response()->json(['messages' => $messages], 200);
 
     }
+    public function test()
+    {
+        # code...
+    }
  
     public function createGroup()
     {
